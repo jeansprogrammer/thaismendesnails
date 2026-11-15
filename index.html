@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><script src="https://myhub.ia.br/canvas-vendor/tailwind.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thaís Mendes Nails · Nail designer em Garanhuns</title>
+<meta name="description" content="Manicure, alongamento em fibra, gel e nail art em Garanhuns. Agende seu horário online.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="index.html"><img src="static/logoPNG-1.png" alt="Thaís Mendes Nails"></a>
+    <ul>
+      <li><a href="#sobre">Sobre</a></li>
+      <li><a href="#servicos">Serviços</a></li>
+      <li><a href="#resultados">Resultados</a></li>
+      <li><a href="#avaliacoes">Avaliações</a></li>
+    </ul>
+    <a class="btn" href="agendamento.html">Agendar</a>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="rv">
+        <span class="eyebrow">Nail designer · Garanhuns</span>
+        <h1>Unhas que contam <em>a sua história</em></h1>
+        <p>Cuidado, delicadeza e acabamento impecável em cada detalhe. Reserve seu horário em menos de 1 minuto.</p>
+        <a class="btn btn--lg" href="agendamento.html">Agendar agora</a>
+      </div>
+      <!-- Para usar foto: troque o <span> por <img src="static/hero.jpg" alt="Unhas feitas por Thaís"> -->
+      <div class="arch rv ph" style="transition-delay:.2s"><span>Sua foto aqui</span><div class="badge">★ 5.0 · Clientes encantadas</div></div>
+    </div>
+  </section>
+
+  <!-- SOBRE -->
+  <section class="about" id="sobre">
+    <div class="wrap">
+      <!-- Para usar foto: <img src="static/thais.jpg" alt="Thaís Mendes"> -->
+      <div class="pic ph rv"><span>Foto da profissional</span></div>
+      <div class="rv" style="transition-delay:.15s">
+        <span class="eyebrow">Quem sou eu</span>
+        <h2>Olá, eu sou a Thaís</h2>
+        <p>Sou apaixonada por transformar o momento do cuidado em uma experiência de bem-estar. Trabalho com materiais de alta qualidade, biossegurança rigorosa e um olhar atento ao que combina com você.</p>
+        <p>Aqui, cada atendimento é pensado para ser leve, acolhedor e com resultado duradouro.</p>
+        <div class="stats">
+          <div><b>+5</b><span>anos de experiência</span></div>
+          <div><b>+2 mil</b><span>atendimentos</span></div>
+          <div><b>100%</b><span>biossegurança</span></div>
+        </div>
+        <a class="btn btn--lg" href="agendamento.html">Agendar agora</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVIÇOS (cards gerados pelo script.js) -->
+  <section id="servicos">
+    <div class="wrap center">
+      <span class="eyebrow">Serviços</span>
+      <h2>Cuidados feitos para você</h2>
+      <p class="lead">Escolha um ou mais serviços e monte o seu atendimento.</p>
+      <div class="grid" id="svcGrid" style="text-align:left"></div>
+      <div class="cta rv"><a class="btn btn--lg" href="agendamento.html">Agendar agora</a></div>
+    </div>
+  </section>
+
+  <!-- RESULTADOS (stories) -->
+  <section class="results" id="resultados">
+    <div class="wrap center">
+      <span class="eyebrow">Resultados</span>
+      <h2>Veja o que já criamos</h2>
+      <p class="lead">Toque em um destaque para ver os stories.</p>
+      <div class="hl rv" id="hl"></div>
+      <div class="cta" style="margin-top:2rem"><a class="btn btn--lg" href="agendamento.html">Agendar agora</a></div>
+    </div>
+  </section>
+
+  <!-- AVALIAÇÕES -->
+  <section id="avaliacoes">
+    <div class="wrap center">
+      <span class="eyebrow">Avaliações</span>
+      <h2>Quem já passou por aqui</h2>
+      <div class="rev rv" id="rev" style="text-align:left"></div>
+      <div class="cta" style="margin-top:2rem"><a class="btn btn--lg" href="agendamento.html">Agendar agora</a></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="static/logoPNG-2.png" alt="Thaís Mendes Nails">
+    <div class="links">
+      <span>📍 Garanhuns · PE</span>
+      <a href="https://instagram.com/" target="_blank" rel="noopener">@thaismendesnails</a>
+      <span>Seg–Sex 9h–18h · Sáb 9h–13h</span>
+    </div>
+    <small>© 2026 Thaís Mendes Nails. Todos os direitos reservados.</small>
+  </div>
+</footer>
+
+<!-- Visualizador de stories -->
+<div class="sv" id="sv" hidden>
+  <div class="sv-card">
+    <div class="sv-bg" id="svBg"></div>
+    <div class="bars" id="svBars"></div>
+    <div class="sv-top"><span id="svName"></span><button id="svClose" aria-label="Fechar">×</button></div>
+    <div class="sv-tap" style="left:0" id="svPrev"></div>
+    <div class="sv-tap" style="right:0" id="svNext"></div>
+    <div class="sv-bot"><h3 id="svTitle"></h3><a class="btn" href="agendamento.html">Agendar agora</a></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

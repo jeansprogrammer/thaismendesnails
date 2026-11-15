@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><script src="https://myhub.ia.br/canvas-vendor/tailwind.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agendar horário · Thaís Mendes Nails</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="index.html"><img src="static/logoPNG-1.png" alt="Thaís Mendes Nails"></a>
+    <a class="back" href="index.html">← Voltar ao site</a>
+  </div>
+</header>
+
+<main class="book">
+  <div class="wrap">
+    <div class="head rv">
+      <span class="eyebrow">Agendamento</span>
+      <h1 style="font-size:clamp(2rem,4.5vw,3.2rem)">Reserve seu horário</h1>
+    </div>
+
+    <div id="bkForm" class="layout">
+      <div>
+        <div class="step rv"><h3><b>1</b> Escolha os serviços</h3><div class="opts" id="bkServices"></div></div>
+        <div class="step rv" style="transition-delay:.08s"><h3><b>2</b> Escolha a data</h3><div class="days" id="bkDays"></div></div>
+        <div class="step rv" style="transition-delay:.16s"><h3><b>3</b> Escolha o horário</h3><div id="bkSlots" class="slots"></div></div>
+        <div class="step rv" style="transition-delay:.24s"><h3><b>4</b> Seus dados</h3>
+          <div class="field"><label for="nome">Nome completo</label><input id="nome" autocomplete="name" placeholder="Seu nome"></div>
+          <div class="field"><label for="tel">WhatsApp</label><input id="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(87) 99999-9999"></div>
+        </div>
+      </div>
+
+      <aside class="sum rv" style="transition-delay:.2s">
+        <h3>Resumo</h3>
+        <ul id="sumList"><li style="opacity:.6">Nenhum serviço selecionado</li></ul>
+        <div class="row"><span>Duração</span><span id="sumDur">—</span></div>
+        <div class="row"><span>Data</span><span id="sumDate">—</span></div>
+        <div class="row"><span>Horário</span><span id="sumTime">—</span></div>
+        <div class="total"><span>Total</span><span id="sumTotal">R$ 0,00</span></div>
+        <button class="btn" id="confirm" disabled>Confirmar agendamento</button>
+      </aside>
+    </div>
+
+    <div id="bkOk" class="step ok" hidden>
+      <div class="check">✓</div>
+      <h2>Agendamento solicitado!</h2>
+      <p id="okTxt"></p>
+      <a class="btn" id="okWa" target="_blank" rel="noopener">Falar no WhatsApp</a>
+      <a class="btn btn--ghost" href="index.html">Voltar ao site</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="static/logoPNG-2.png" alt="Thaís Mendes Nails">
+    <div class="links">
+      <span>📍 Garanhuns · PE</span>
+      <a href="https://instagram.com/" target="_blank" rel="noopener">@thaismendesnails</a>
+      <span>Seg–Sex 9h–18h · Sáb 9h–13h</span>
+    </div>
+    <small>© 2026 Thaís Mendes Nails. Todos os direitos reservados.</small>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
