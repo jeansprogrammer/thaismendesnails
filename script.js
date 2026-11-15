@@ -200,6 +200,7 @@ function initBooking() {
 
   /* Confirmação */
   $('#confirm').addEventListener('click', async () => {
+    const wa = window.open('', '_blank'); // abre já no clique para o navegador não bloquear
     const btn = $('#confirm'); btn.disabled = true; btn.textContent = 'Enviando…';
     const nome = $('#nome').value.trim(), tel = $('#tel').value.replace(/\D/g, '');
     const servicos = [...st.sel].map(id => SERVICES.find(s => s.id === id).name);
@@ -209,6 +210,7 @@ function initBooking() {
     try {
       await api('/agendamentos', { method: 'POST', body: { nome, whatsapp: '55' + tel, servico_ids: [...st.sel], data: st.date, hora: st.time } });
     } catch (e) {
+      if (wa) wa.close();
       alert(e.message);
       btn.textContent = 'Confirmar agendamento';
       if (e.status === 409) { st.time = null; renderSlots(); }
@@ -221,8 +223,11 @@ function initBooking() {
       catch (_) { /* segue para a tela de sucesso; a cliente ainda pode usar o botão do WhatsApp */ }
     }
 
-    $('#okTxt').textContent = `${nome.split(' ')[0]}, você receberá a confirmação no WhatsApp (${$('#tel').value}) com todos os detalhes para ${longDate(st.date)} às ${st.time}.`;
-    $('#okWa').href = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent('Olá! Acabei de agendar pelo site.\n\n' + mensagem.replace(`Olá, ${nome}! ✨\n`, `Cliente: ${nome}\n`))}`;
+    $('#okTxt').textContent = `${nome.split(' ')[0]}, seu horário para ${longDate(st.date)} às ${st.time} está reservado! Envie a mensagem no WhatsApp para a Thaís confirmar com você. Se ele não abriu, toque no botão abaixo.`;
+    const msgProf = `Olá, Thaís! Sou ${nome} e acabei de agendar pelo site:\n\n💅 ${servicos.join(', ')}\n📅 ${longDate(st.date)}\n🕐 ${st.time}\n💰 ${fmt(sumOf('price'))}\n📱 ${$('#tel').value}`;
+    const waUrl = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msgProf)}`;
+    $('#okWa').href = waUrl;
+    if (wa) wa.location.href = waUrl;
     $('#bkForm').hidden = true; $('#bkOk').hidden = false;
     scrollTo({ top: 0, behavior: 'smooth' });
     btn.textContent = 'Confirmar agendamento';

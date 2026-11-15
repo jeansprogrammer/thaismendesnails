@@ -455,7 +455,7 @@ function renderAgenda(){
   // lista
   $('#apList').innerHTML=list.length?list.map(a=>{
     const m=mins(a);
-    const wa=`https://wa.me/55${a.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Olá, ${a.client.split(' ')[0]}! Aqui é a Thaís, da Thaís Mendes Nails. Sobre seu horário em ${d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})} às ${hhmm(a.start)}:`)}`;
+    const wa=`https://wa.me/55${a.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Olá, ${a.client.split(' ')[0]}! Aqui é a Thaís. Sobre seu horário em ${d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})} às ${hhmm(a.start)}:`)}`;
     const acts={
       pendente:`<button class="btn btn--sm" data-a="confirmado" data-id="${a.id}">Confirmar</button><button class="btn btn--ghost btn--sm" data-a="cancelado" data-id="${a.id}">Cancelar</button>`,
       confirmado:`<button class="btn btn--sm" data-a="concluido" data-id="${a.id}">Concluir</button><button class="btn btn--ghost btn--sm" data-a="cancelado" data-id="${a.id}">Cancelar</button>`,
