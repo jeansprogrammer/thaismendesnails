@@ -1,6 +1,6 @@
 /* ============ CONFIGURAÇÃO ============ */
 const CONFIG = {
-  whatsapp: '5587999999999', // WhatsApp da profissional (DDI+DDD+número)
+  whatsapp: '5587981113576', // WhatsApp da profissional (DDI+DDD+número)
   webhook: ''                // URL do n8n / Evolution API / Z-API que dispara a mensagem
 };
 
