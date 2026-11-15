@@ -1,7 +1,7 @@
 /* ============ CONFIGURAÇÃO ============ */
 const CONFIG = {
-  whatsapp: '5587981113576', // WhatsApp da profissional (DDI+DDD+número)
-  webhook: ''                // URL do n8n / sEvolution API / Z-API que dispara a mensagem
+  whatsapp: '5587999999999', // WhatsApp da profissional (DDI+DDD+número)
+  webhook: ''                // URL do n8n / Evolution API / Z-API que dispara a mensagem
 };
 
 /* ============ UTILITÁRIOS ============ */
@@ -10,8 +10,20 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const fmt = n => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const dur = m => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`;
 
-/* ============ DADOS (ilustrativos) ============ */
-const SERVICES = [
+/* ============ API ============ */
+async function api(path, opts = {}) {
+  const r = await fetch('/api' + path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(data.erro || 'Erro de conexão'); e.status = r.status; throw e; }
+  return data;
+}
+
+/* ============ DADOS (lista de reserva; a oficial vem de /api/servicos) ============ */
+let SERVICES = [
   { id: 'gel',   name: 'Esmaltação em gel',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 55,  mins: 60 },
   { id: 'trad',  name: 'Manicure tradicional',      desc: 'Cutilagem delicada e esmaltação clássica.',         price: 30,  mins: 45 },
   { id: 'pedi',  name: 'Pedicure',                  desc: 'Cuidado completo para pés leves e macios.',         price: 40,  mins: 60 },
@@ -131,7 +143,7 @@ function initBooking() {
   $('#bkDays').innerHTML = Array.from({ length: 21 }, (_, i) => {
     const d = new Date(today); d.setDate(today.getDate() + i);
     const mes = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
-    return `<button class="day" data-d="${key(d)}" ${d.getDay() === 0 ? 'disabled' : ''}><small>${WD[d.getDay()]}</small><b>${d.getDate()}</b><small>${mes}</small></button>`;
+    return `<button class="day" data-d="${key(d)}"><small>${WD[d.getDay()]}</small><b>${d.getDate()}</b><small>${mes}</small></button>`;
   }).join('');
   $('#bkDays').addEventListener('click', e => {
     const b = e.target.closest('.day'); if (!b) return;
@@ -139,28 +151,30 @@ function initBooking() {
     st.date = b.dataset.d; st.time = null; renderSlots(); renderSum();
   });
 
-  /* Horários — seg–sex 9h–12h e 14h–18h · sáb 9h–13h */
-  function renderSlots() {
+  /* Horários livres vindos da API (já descontam dias de trabalho, folgas e agendamentos) */
+  let slotsReq = 0;
+  async function renderSlots() {
     const box = $('#bkSlots');
     if (!st.sel.size) return box.innerHTML = '<p class="hint">Selecione os serviços para ver os horários.</p>';
     if (!st.date) return box.innerHTML = '<p class="hint">Escolha uma data.</p>';
-    const d = dateObj(st.date), need = sumOf('mins');
-    const blocks = d.getDay() === 6 ? [[540, 780]] : [[540, 720], [840, 1080]];
-    const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes() + 60, isToday = key(now) === st.date;
-    let html = '';
-    blocks.forEach(([a, b]) => {
-      for (let t = a; t + need <= b; t += 30) {
-        const label = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
-        // Ocupados são SIMULADOS. Troque por consulta ao seu backend / Google Agenda.
-        const busy = (isToday && t < nowMin) || ((d.getDate() * 7 + t / 30 * 3) % 5 === 0);
-        html += `<button class="slot ${st.time === label ? 'on' : ''}" data-t="${label}" ${busy ? 'disabled' : ''}>${label}</button>`;
-      }
-    });
-    box.innerHTML = html || '<p class="hint">Sem horários disponíveis nesta data para a duração escolhida. Tente outro dia.</p>';
+    const req = ++slotsReq;
+    box.innerHTML = '<p class="hint">Buscando horários…</p>';
+    try {
+      const { slots } = await api(`/horarios-livres?data=${st.date}&servicos=${[...st.sel].join(',')}`);
+      if (req !== slotsReq) return;
+      if (st.time && !slots.includes(st.time)) { st.time = null; renderSum(); }
+      box.innerHTML = slots.length
+        ? slots.map(t => `<button class="slot ${st.time === t ? 'on' : ''}" data-t="${t}">${t}</button>`).join('')
+        : '<p class="hint">Sem horários disponíveis nesta data. Tente outro dia.</p>';
+    } catch (e) {
+      if (req === slotsReq) box.innerHTML = `<p class="hint">${e.message}</p>`;
+    }
   }
   $('#bkSlots').addEventListener('click', e => {
     const b = e.target.closest('.slot'); if (!b) return;
-    st.time = b.dataset.t; renderSlots(); renderSum();
+    st.time = b.dataset.t;
+    $$('.slot').forEach(x => x.classList.toggle('on', x === b));
+    renderSum();
   });
 
   /* Dados da cliente */
@@ -192,6 +206,16 @@ function initBooking() {
     const mensagem = `Olá, ${nome}! ✨\nSeu agendamento na *Thaís Mendes Nails* foi recebido:\n\n💅 ${servicos.join(', ')}\n📅 ${longDate(st.date)}\n🕐 ${st.time}\n💰 ${fmt(sumOf('price'))}\n\nQualquer dúvida, é só responder esta mensagem. Te espero! 🤎`;
     const payload = { nome, whatsapp: '55' + tel, servicos, duracao_min: sumOf('mins'), total: sumOf('price'), data: st.date, hora: st.time, mensagem };
 
+    try {
+      await api('/agendamentos', { method: 'POST', body: { nome, whatsapp: '55' + tel, servico_ids: [...st.sel], data: st.date, hora: st.time } });
+    } catch (e) {
+      alert(e.message);
+      btn.textContent = 'Confirmar agendamento';
+      if (e.status === 409) { st.time = null; renderSlots(); }
+      renderSum();
+      return;
+    }
+
     if (CONFIG.webhook) {
       try { await fetch(CONFIG.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); }
       catch (_) { /* segue para a tela de sucesso; a cliente ainda pode usar o botão do WhatsApp */ }
@@ -208,8 +232,12 @@ function initBooking() {
 }
 
 /* ============ INICIALIZAÇÃO ============ */
-if ($('#svcGrid')) initHome();
-if ($('#bkForm')) initBooking();
+(async () => {
+  try { SERVICES = await api('/servicos'); } catch (_) { /* usa a lista de reserva */ }
+  if ($('#svcGrid')) initHome();
+  if ($('#bkForm')) initBooking();
+  $$('.rv').forEach(el => io.observe(el));
+})();
 
 const io = new IntersectionObserver(es => es.forEach(e => {
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }

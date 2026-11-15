@@ -312,8 +312,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const WD=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 const STATUS={pendente:'Pendente',confirmado:'Confirmado',concluido:'Concluído',cancelado:'Cancelado'};
 
-/* ---------- Dados ilustrativos (troque por chamadas à API / Neon) ---------- */
-const SERVICES=[
+/* ---------- Dados (carregados da API; esta lista é só reserva) ---------- */
+let SERVICES=[
   {id:'gel',name:'Esmaltação em gel',desc:'Cor intensa e brilho de até 3 semanas',price:55,mins:60},
   {id:'trad',name:'Manicure tradicional',desc:'Cutilagem e esmaltação clássica',price:30,mins:45},
   {id:'pedi',name:'Pedicure',desc:'Pés leves e macios',price:40,mins:60},
@@ -323,37 +323,31 @@ const SERVICES=[
   {id:'art',name:'Nail art',desc:'Decorações e pedrarias',price:25,mins:30},
   {id:'spa',name:'Spa dos pés',desc:'Esfoliação, hidratação e massagem',price:70,mins:60},
 ];
-const svc=id=>SERVICES.find(s=>s.id===id);
-const NAMES=['Mariana Souza','Camila Rocha','Juliana Alves','Beatriz Lima','Fernanda Costa','Larissa Melo','Patrícia Nunes','Aline Barros','Renata Silva','Gabriela Dias','Carla Freitas','Tatiane Lopes'];
-const COMBOS=[['gel'],['fibra'],['manut','art'],['trad','pedi'],['bind'],['gel','pedi'],['spa','pedi'],['art','gel']];
+const svc=id=>SERVICES.find(s=>s.id===id)||{name:'Serviço removido',price:0,mins:30};
 
 const today=new Date();today.setHours(0,0,0,0);
 const todayK=key(today);
-let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
-const APPTS=[];let nid=1;
-const PHONES={};NAMES.forEach(n=>PHONES[n]='87 9'+String(Math.floor(rnd()*90000000+10000000)));
+let APPTS=[],loaded={from:'',to:''};
 
-for(let off=-14;off<=14;off++){
-  const d=addDays(today,off);if(d.getDay()===0)continue;
-  const blocks=d.getDay()===6?[[540,780]]:[[540,720],[840,1080]];
-  const n=2+Math.floor(rnd()*4);let cur=540+30*Math.floor(rnd()*2);
-  for(let k=0;k<n;k++){
-    const svcs=COMBOS[Math.floor(rnd()*COMBOS.length)];
-    const mins=svcs.reduce((a,id)=>a+svc(id).mins,0);
-    let placed=false;
-    for(const [a,b] of blocks){
-      const s=Math.ceil(Math.max(cur,a)/30)*30;
-      if(s+mins<=b){
-        const past=off<0;
-        let status=past?(rnd()<.1?'cancelado':'concluido'):(rnd()<.55?'confirmado':'pendente');
-        if(!past&&rnd()<.06)status='cancelado';
-        const client=NAMES[Math.floor(rnd()*NAMES.length)];
-        APPTS.push({id:nid++,date:key(d),start:s,client,phone:PHONES[client],svc:svcs,status});
-        cur=s+mins+30*Math.floor(rnd()*2);placed=true;break;
-      }
-    }
-    if(!placed)break;
-  }
+/* ---------- API ---------- */
+let TOKEN=null;
+try{TOKEN=sessionStorage.getItem('tm_tk');}catch(_){}
+const saveToken=t=>{TOKEN=t;try{t?sessionStorage.setItem('tm_tk',t):sessionStorage.removeItem('tm_tk');}catch(_){}};
+async function api(path,opts={}){
+  const r=await fetch('/api'+path,{
+    method:opts.method||'GET',
+    headers:{'Content-Type':'application/json',...(TOKEN?{Authorization:'Bearer '+TOKEN}:{})},
+    body:opts.body!==undefined?JSON.stringify(opts.body):undefined
+  });
+  const d=await r.json().catch(()=>({}));
+  if(r.status===401&&path!=='/login'){logout();throw new Error('Sessão expirada. Entre novamente.');}
+  if(!r.ok)throw new Error(d.erro||'Erro de conexão');
+  return d;
+}
+async function loadRange(from,to){
+  const rows=await api(`/agenda?de=${from}&ate=${to}`);
+  APPTS=APPTS.filter(a=>a.date<from||a.date>to).concat(rows);
+  loaded={from:!loaded.from||from<loaded.from?from:loaded.from,to:!loaded.to||to>loaded.to?to:loaded.to};
 }
 const DAYS=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 // Índice = getDay() (0 = domingo). Troque por GET /api/schedule
@@ -368,17 +362,31 @@ const SCHEDULE=[
 ];
 const BLOCKED=new Map(); // 'YYYY-MM-DD' → motivo
 const mins=a=>a.svc.reduce((t,id)=>t+svc(id).mins,0);
-const total=a=>a.svc.reduce((t,id)=>t+svc(id).price,0);
+const total=a=>a.total;
 const live=a=>a.status!=='cancelado';
 
 /* ---------- Login ---------- */
-// DEMO: a validação real deve ser feita no servidor (hash de senha + sessão/JWT).
-$('#loginForm').addEventListener('submit',e=>{
+async function enter(){
+  const [sv,sc,off]=await Promise.all([api('/servicos'),api('/horarios'),api('/folgas')]);
+  SERVICES=sv;
+  SCHEDULE.splice(0,SCHEDULE.length,...sc);
+  draft.splice(0,draft.length,...sc.map(s=>({...s})));
+  BLOCKED.clear();off.forEach(o=>BLOCKED.set(o.day,o.reason));
+  await loadRange(key(addDays(today,-14)),key(addDays(today,14)));
+  sel=todayK;
+  $('#login').hidden=true;$('#app').hidden=false;renderAll();
+}
+function logout(){saveToken(null);$('#app').hidden=true;$('#login').hidden=false;$('#pass').value='';$('#err').textContent='';}
+$('#loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  if($('#pass').value==='admin123'){$('#login').hidden=true;$('#app').hidden=false;renderAll();}
-  else $('#err').textContent='E-mail ou senha incorretos.';
+  const btn=$('button',e.target);btn.disabled=true;$('#err').textContent='';
+  try{
+    const r=await api('/login',{method:'POST',body:{email:$('#email').value,senha:$('#pass').value}});
+    saveToken(r.token);await enter();
+  }catch(er){$('#err').textContent=er.message;}
+  btn.disabled=false;
 });
-$('#logout').onclick=()=>{$('#app').hidden=true;$('#login').hidden=false;$('#pass').value='';$('#err').textContent='';};
+$('#logout').onclick=logout;
 
 /* ---------- Abas ---------- */
 $('#tabs').addEventListener('click',e=>{
@@ -395,7 +403,14 @@ let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on
 
 /* ---------- Agenda ---------- */
 let sel=todayK;
-function setDay(k){sel=k;renderAgenda();}
+async function setDay(k){
+  sel=k;
+  if(k<loaded.from||k>loaded.to){
+    try{await(k<loaded.from?loadRange(key(addDays(parse(k),-7)),loaded.from):loadRange(loaded.to,key(addDays(parse(k),14))));}
+    catch(e){toast(e.message);}
+  }
+  renderAgenda();
+}
 $('#prev').onclick=()=>setDay(key(addDays(parse(sel),-1)));
 $('#next').onclick=()=>setDay(key(addDays(parse(sel),1)));
 $('#goToday').onclick=()=>setDay(todayK);
@@ -445,7 +460,7 @@ function renderAgenda(){
       pendente:`<button class="btn btn--sm" data-a="confirmado" data-id="${a.id}">Confirmar</button><button class="btn btn--ghost btn--sm" data-a="cancelado" data-id="${a.id}">Cancelar</button>`,
       confirmado:`<button class="btn btn--sm" data-a="concluido" data-id="${a.id}">Concluir</button><button class="btn btn--ghost btn--sm" data-a="cancelado" data-id="${a.id}">Cancelar</button>`,
       concluido:'',
-      cancelado:`<button class="btn btn--ghost btn--sm" data-a="pendente" data-id="${a.id}">Reabrir</button>`
+      cancelado:`<button class="btn btn--ghost btn--sm" data-a="confirmado" data-id="${a.id}">Reabrir</button>`
     }[a.status];
     return `<article class="ap st-${a.status}">
       <div class="ap-time"><b>${hhmm(a.start)}</b><small>até ${hhmm(a.start+m)}</small></div>
@@ -455,29 +470,40 @@ function renderAgenda(){
   }).join(''):`<div class="empty"><b>Dia livre ✨</b>Nenhum agendamento para esta data.</div>`;
 }
 $('#strip').addEventListener('click',e=>{const c=e.target.closest('.chip');if(c)setDay(c.dataset.k);});
-$('#notice').addEventListener('click',e=>{
+$('#notice').addEventListener('click',async e=>{
   const b=e.target.closest('[data-block]');if(!b)return;
-  b.dataset.block==='1'?BLOCKED.set(sel,'Bloqueado'):BLOCKED.delete(sel);
-  toast(b.dataset.block==='1'?'Dia bloqueado':'Dia desbloqueado');renderAgenda();
+  const on=b.dataset.block==='1';
+  try{
+    if(on)await api('/folgas',{method:'POST',body:{from:sel,reason:'Bloqueado'}});
+    else await api('/folgas?de='+sel,{method:'DELETE'});
+  }catch(er){return toast(er.message);}
+  on?BLOCKED.set(sel,'Bloqueado'):BLOCKED.delete(sel);
+  toast(on?'Dia bloqueado':'Dia desbloqueado');renderAgenda();
 });
-$('#apList').addEventListener('click',e=>{
+$('#apList').addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;
-  const a=APPTS.find(x=>x.id===+b.dataset.id);a.status=b.dataset.a;
-  toast({confirmado:'Agendamento confirmado',concluido:'Atendimento concluído',cancelado:'Agendamento cancelado',pendente:'Agendamento reaberto'}[a.status]);
+  const a=APPTS.find(x=>x.id===+b.dataset.id),to=b.dataset.a;
+  b.disabled=true;
+  try{await api('/agendamentos/'+a.id,{method:'PATCH',body:{status:to}});}
+  catch(er){b.disabled=false;return toast(er.message);}
+  a.status=to;
+  toast({confirmado:'Agendamento confirmado',concluido:'Atendimento concluído',cancelado:'Agendamento cancelado'}[to]);
   renderAgenda();
 });
 
 /* ---------- Desempenho ---------- */
 function renderPerf(){
-  const done=APPTS.filter(a=>a.status==='concluido');
-  const planned=APPTS.filter(a=>a.status==='pendente'||a.status==='confirmado');
+  const lo=key(addDays(today,-14)),hi=key(addDays(today,14));
+  const win=APPTS.filter(a=>a.date>=lo&&a.date<=hi);
+  const done=win.filter(a=>a.status==='concluido');
+  const planned=win.filter(a=>(a.status==='pendente'||a.status==='confirmado')&&a.date>=todayK);
   const sum=l=>l.reduce((t,a)=>t+total(a),0);
-  const cancel=APPTS.filter(a=>a.status==='cancelado').length;
+  const cancel=win.filter(a=>a.status==='cancelado').length;
   $('#perfKpis').innerHTML=`
     <div class="kpi gold"><small>Realizado (14 dias)</small><b>${fmt(sum(done))}</b><span>${done.length} atendimentos</span></div>
     <div class="kpi"><small>Previsto (próx. 14 dias)</small><b>${fmt(sum(planned))}</b><span>${planned.length} agendados</span></div>
     <div class="kpi"><small>Ticket médio</small><b>${fmt(done.length?sum(done)/done.length:0)}</b><span>por atendimento</span></div>
-    <div class="kpi"><small>Cancelamentos</small><b>${Math.round(cancel/APPTS.length*100)}%</b><span>${cancel} de ${APPTS.length}</span></div>`;
+    <div class="kpi"><small>Cancelamentos</small><b>${win.length?Math.round(cancel/win.length*100):0}%</b><span>${cancel} de ${win.length}</span></div>`;
 
   // gráfico
   const days=[];for(let i=-6;i<=7;i++)days.push(addDays(today,i));
@@ -519,12 +545,14 @@ $('#svcRows').addEventListener('input',e=>{
   $('.money',row).classList.toggle('dirty',changed);
   $('button',row).disabled=!changed;
 });
-$('#svcRows').addEventListener('click',e=>{
+$('#svcRows').addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
-  const row=b.closest('.srow'),s=svc(row.dataset.id);
-  s.price=parseFloat($('input',row).value);
-  // Aqui: PATCH /api/services/:id { price } → UPDATE no Neon
-  $('.money',row).classList.remove('dirty');b.disabled=true;
+  const row=b.closest('.srow'),s=svc(row.dataset.id),p=parseFloat($('input',row).value);
+  b.disabled=true;
+  try{await api('/servicos/'+s.id,{method:'PUT',body:{price:p}});}
+  catch(er){b.disabled=false;return toast(er.message);}
+  s.price=p;
+  $('.money',row).classList.remove('dirty');
   toast(`${s.name}: ${fmt(s.price)} salvo`);renderAgenda();
 });
 
@@ -574,10 +602,12 @@ $('#horRows').addEventListener('input',e=>{
   }else s[f]=e.target.value;
   horDirty();
 });
-$('#horSave').onclick=()=>{
+$('#horSave').onclick=async()=>{
+  $('#horSave').disabled=true;
+  try{await api('/horarios',{method:'PUT',body:draft});}
+  catch(er){toast(er.message);return horDirty();}
   const closing=ORDER.filter(i=>SCHEDULE[i].open&&!draft[i].open);
   draft.forEach((s,i)=>SCHEDULE[i]={...s});
-  // Aqui: PUT /api/schedule { SCHEDULE } → UPDATE no Neon
   const aff=APPTS.filter(a=>a.date>=todayK&&live(a)&&closing.includes(parse(a.date).getDay())).length;
   horDirty();renderAgenda();
   toast(aff?`Horários salvos · ${aff} agendamento(s) em dias fechados continuam na agenda`:'Horários salvos');
@@ -598,28 +628,32 @@ function renderBlocks(){
     <button class="btn btn--ghost btn--sm" data-from="${x.from}" data-to="${x.to}">Remover</button></div>`).join('')
     :`<p class="hint" style="margin:0">Nenhuma folga programada.</p>`;
 }
-$('#blkAdd').onclick=()=>{
+$('#blkAdd').onclick=async()=>{
   const f=$('#blkFrom').value,t=$('#blkTo').value||f,r=$('#blkWhy').value.trim()||'Folga';
   if(!f||f<todayK)return toast('Escolha uma data a partir de hoje');
   if(t<f)return toast('A data final vem antes da inicial');
   if((parse(t)-parse(f))/864e5>90)return toast('Período máximo: 90 dias');
+  try{await api('/folgas',{method:'POST',body:{from:f,to:t,reason:r}});}
+  catch(er){return toast(er.message);}
   let aff=0;
   for(let d=parse(f);key(d)<=t;d=addDays(d,1)){
     BLOCKED.set(key(d),r);
     aff+=APPTS.filter(a=>a.date===key(d)&&live(a)).length;
   }
-  // Aqui: POST /api/blocks { from, to, reason } → INSERT no Neon
   $('#blkFrom').value=$('#blkTo').value=$('#blkWhy').value='';
   renderBlocks();renderAgenda();
   toast(aff?`Período bloqueado · ${aff} agendamento(s) já marcados nele`:'Período bloqueado');
 };
-$('#blkList').addEventListener('click',e=>{
+$('#blkList').addEventListener('click',async e=>{
   const b=e.target.closest('[data-from]');if(!b)return;
+  try{await api(`/folgas?de=${b.dataset.from}&ate=${b.dataset.to}`,{method:'DELETE'});}
+  catch(er){return toast(er.message);}
   for(let d=parse(b.dataset.from);key(d)<=b.dataset.to;d=addDays(d,1))BLOCKED.delete(key(d));
   renderBlocks();renderAgenda();toast('Período liberado');
 });
 
 function renderAll(){renderAgenda();renderSvc();renderHor();}
+if(TOKEN)enter().catch(logout);
 </script>
 </body>
 </html>
