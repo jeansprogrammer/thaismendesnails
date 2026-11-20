@@ -24,14 +24,14 @@ async function api(path, opts = {}) {
 
 /* ============ DADOS (lista de reserva; a oficial vem de /api/servicos) ============ */
 let SERVICES = [
-  { id: 'man+ped',  name: 'Manicure + Pedicure',      desc: 'Cutilagem delicada, cuidado para pés e esmaltação clássica.',         price: 35,  mins: 90 },
+  { id: 'man_ped',  name: 'Manicure + Pedicure',      desc: 'Cutilagem delicada, cuidado para pés e esmaltação clássica.',         price: 35,  mins: 90 },
   { id: 'mani',  name: 'Manicure',      desc: 'Cutilagem delicada e esmaltação clássica.',         price: 20,  mins: 50 },
   { id: 'pedi',  name: 'Pedicure',                  desc: 'Cuidado completo para pés leves e macios.',         price: 20,  mins: 50 },
-  { id: 'gel-m',   name: 'Cutilagem + Esmaltação em gel (mão)',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 50,  mins: 60 },
-  { id: 'gel-p',   name: 'Cutilagem + Esmaltação em gel (pé)',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 50,  mins: 60 },
+  { id: 'gel_m',   name: 'Cutilagem + Esmaltação em gel (mão)',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 50,  mins: 60 },
+  { id: 'gel_p',   name: 'Cutilagem + Esmaltação em gel (pé)',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 50,  mins: 60 },
   { id: 'plast', name: 'Plásticas dos pés + Pedicure',      desc: 'Tratamento completo para renovar, suavizar e cuidar dos pés.',              price: 45, mins: 90 },
-  { id: 'esm-m', name: 'Esmaltação tradicional (mão)', desc: 'Cores clássicas, brilho e acabamento delicado para suas mãos.',         price: 10, mins: 30 },
-  { id: 'esm-p',  name: 'Esmaltação tradicional (pé)',                 desc: 'Unhas dos pés com cor, brilho e acabamento impecável.',   price: 10,  mins: 30 },
+  { id: 'esm_m', name: 'Esmaltação tradicional (mão)', desc: 'Cores clássicas, brilho e acabamento delicado para suas mãos.',         price: 10, mins: 30 },
+  { id: 'esm_p',  name: 'Esmaltação tradicional (pé)',                 desc: 'Unhas dos pés com cor, brilho e acabamento impecável.',   price: 10,  mins: 30 },
 ];
 
 const STORIES = [
@@ -55,8 +55,10 @@ function initHome() {
     <a class="card rv" href="agendamento.html?s=${s.id}"><h3>${s.name}</h3><p>${s.desc}</p>
     <div class="meta"><span>⏱ ${dur(s.mins)}</span><b>${fmt(s.price)}</b></div><span class="go">Agendar →</span></a>`).join('');
 
-  $('#rev').innerHTML = REVIEWS.map(r => `
-    <article><div class="stars">★★★★★</div><p>“${r[0]}”</p><b>${r[1]}</b></article>`).join('');
+  $('#rev').innerHTML = REVIEWS.map((r, i) => `
+    <article><div class="stars" aria-label="5 estrelas">${'<img src="static/ico-estrela.svg" alt="" width="18" height="18">'.repeat(5)}</div>
+    <p>“${r[0]}”</p>
+    <div class="who" style="display:flex;flex-direction:row;align-items:center;gap:.9rem;margin-top:1.4rem"><img src="static/avatar-${i + 1}.png" alt="${r[1]}" width="48" height="48" loading="lazy" style="width:48px;height:48px;min-width:48px;border-radius:50%;object-fit:cover;aspect-ratio:1/1;flex:none;border:2px solid #B89E5D" onerror="this.style.display='none'"><b>${r[1]}</b></div></article>`).join('');
 
   const bgOf = s => s.img ? `url(${s.img})` : `linear-gradient(160deg,${s.c[0]},${s.c[1]})`;
   $('#hl').innerHTML = STORIES.map((s, i) => `

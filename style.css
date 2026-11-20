@@ -180,3 +180,8 @@ footer small{display:block;margin-top:2.5rem;opacity:.55;font-size:.75rem}
 .rv{opacity:0;transform:translateY(24px);transition:.8s}
 .rv.in{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+.card .ico{width:44px;height:44px;margin-bottom:.4rem}
+.stars{display:flex;gap:.25rem}
+footer .links span,footer .links a{display:inline-flex;align-items:center;gap:.6rem}
+.ico-s{width:34px;height:34px;padding:6px;border-radius:50%;background:var(--cream);flex:none}
