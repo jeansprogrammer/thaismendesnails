@@ -31,7 +31,7 @@ async function login({ email, senha }) {
   const [u] = await sql`SELECT id, password_hash FROM admin_users WHERE email = ${String(email).toLowerCase().trim()}`;
   const ok = u ? await bcrypt.compare(String(senha), u.password_hash) : false;
   if (!ok) bad('E-mail ou senha incorretos', 401);
-  return { token: jwt.sign({ uid: u.id }, process.env.JWT_SECRET, { expiresIn: '12h' }) };
+  return { token: jwt.sign({ uid: u.id }, process.env.JWT_SECRET, { expiresIn: '30d' }) };
 }
 
 /* ---------- Serviços ---------- */

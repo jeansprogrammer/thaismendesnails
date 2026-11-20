@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
+<head><script src="https://myhub.ia.br/canvas-vendor/tailwind.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel · Thaís Mendes Nails</title>
-<link rel="icon" type="image/png" href="static/favicon.png">
-<link rel="apple-touch-icon" href="static/favicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="static/admin-apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="static/admin-icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Painel Thaís">
+<meta name="theme-color" content="#FBF7F2">
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -208,14 +210,15 @@ main{padding:1.8rem 0 4rem}
 
 <!-- LOGIN -->
 <section class="login" id="login">
-  <form class="login-card" id="loginForm" autocomplete="on">
+  <form class="login-card" id="loginForm" action="about:blank" method="post" target="pwframe" autocomplete="on">
     <img src="static/logoPNG-1.png" alt="Thaís Mendes Nails">
     <h1>Painel da Thaís</h1>
     <p class="sub">Entre para ver sua agenda e gerenciar os preços.</p>
-    <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" placeholder="voce@email.com" required></div>
-    <div class="field"><label for="pass">Senha</label><input id="pass" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
+    <div class="field"><label for="email">E-mail</label><input id="email" name="username" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="voce@email.com" required></div>
+    <div class="field"><label for="pass">Senha</label><input id="pass" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
     <div class="err" id="err"></div>
     <button class="btn" type="submit">Entrar</button>
+    <iframe name="pwframe" title="" hidden></iframe>
   </form>
 </section>
 
@@ -333,8 +336,8 @@ let APPTS=[],loaded={from:'',to:''};
 
 /* ---------- API ---------- */
 let TOKEN=null;
-try{TOKEN=sessionStorage.getItem('tm_tk');}catch(_){}
-const saveToken=t=>{TOKEN=t;try{t?sessionStorage.setItem('tm_tk',t):sessionStorage.removeItem('tm_tk');}catch(_){}};
+try{TOKEN=localStorage.getItem('tm_tk');}catch(_){}
+const saveToken=t=>{TOKEN=t;try{t?localStorage.setItem('tm_tk',t):localStorage.removeItem('tm_tk');}catch(_){}};
 async function api(path,opts={}){
   const r=await fetch('/api'+path,{
     method:opts.method||'GET',
@@ -379,13 +382,18 @@ async function enter(){
   $('#login').hidden=true;$('#app').hidden=false;renderAll();
 }
 function logout(){saveToken(null);$('#app').hidden=true;$('#login').hidden=false;$('#pass').value='';$('#err').textContent='';}
+let credOk=false;
 $('#loginForm').addEventListener('submit',async e=>{
+  if(credOk){credOk=false;return;} // envio real (para o iframe) que faz o Safari oferecer salvar a senha
   e.preventDefault();
-  const btn=$('button',e.target);btn.disabled=true;$('#err').textContent='';
+  const form=e.target,btn=$('button',form);btn.disabled=true;$('#err').textContent='';
   try{
     const r=await api('/login',{method:'POST',body:{email:$('#email').value,senha:$('#pass').value}});
-    saveToken(r.token);await enter();
-  }catch(er){$('#err').textContent=er.message;}
+    saveToken(r.token);
+    credOk=true;form.requestSubmit();
+    await new Promise(res=>setTimeout(res,400));
+    await enter();
+  }catch(er){credOk=false;$('#err').textContent=er.message;}
   btn.disabled=false;
 });
 $('#logout').onclick=logout;
@@ -655,7 +663,7 @@ $('#blkList').addEventListener('click',async e=>{
 });
 
 function renderAll(){renderAgenda();renderSvc();renderHor();}
-if(TOKEN)enter().catch(logout);
+if(TOKEN)enter().catch(()=>{$('#app').hidden=true;$('#login').hidden=false;});
 </script>
 </body>
 </html>
