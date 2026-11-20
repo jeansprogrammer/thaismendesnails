@@ -200,6 +200,25 @@ main{padding:1.8rem 0 4rem}
   .bform .btn{width:100%}
 }
 
+/* Modal e mensagens */
+.modal{position:fixed;inset:0;z-index:80;background:rgba(40,28,18,.55);display:grid;place-items:center;padding:1rem;animation:rise .25s both}
+.mbox{width:min(480px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:24px;padding:1.8rem}
+.mbox h3{font-size:1.9rem;margin-bottom:.3rem}
+.mbox .hint{color:var(--muted);font-size:.88rem;margin-bottom:1.1rem}
+.field textarea,.field select{padding:.9rem 1rem;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:var(--bg);outline:0;width:100%;resize:vertical;transition:.2s;color:var(--ink)}
+.field textarea:focus,.field select:focus{border-color:var(--taupe);background:#fff}
+.mrow{display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;margin-top:1rem}
+.pick{display:flex;flex-wrap:wrap;gap:.5rem}
+.pick button{padding:.55rem 1rem;border:1.5px solid var(--line);border-radius:999px;font-size:.88rem;background:var(--bg);transition:.2s}
+.pick button:hover{border-color:var(--rose)}
+.pick button.on{background:var(--brown);color:var(--cream);border-color:var(--brown)}
+.tpl{padding:1.1rem 0;border-bottom:1px solid var(--line)}
+.tpl:last-child{border:0}
+.tpl h4{font-size:1.45rem;margin-bottom:.5rem}
+.tpl textarea{width:100%;padding:.9rem 1rem;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:var(--bg);outline:0;resize:vertical;color:var(--ink)}
+.tpl textarea:focus{border-color:var(--taupe);background:#fff}
+.tpl textarea.dirty{border-color:var(--gold);background:#fffaf0}
+
 /* Toast */
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,30px);background:var(--brown);color:var(--cream);padding:.8rem 1.4rem;border-radius:999px;font-size:.85rem;opacity:0;transition:.35s;z-index:99;pointer-events:none}
 .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -234,6 +253,7 @@ main{padding:1.8rem 0 4rem}
       <button class="tab" data-v="perf">Desempenho</button>
       <button class="tab" data-v="hor">Horários</button>
       <button class="tab" data-v="svc">Serviços e preços</button>
+      <button class="tab" data-v="msg">Mensagens</button>
     </div>
   </header>
 
@@ -300,9 +320,18 @@ main{padding:1.8rem 0 4rem}
         <div class="info">Nome, descrição e duração dos serviços são alterados pelo desenvolvedor. Fale com ele se precisar mudar algo além do preço.</div>
       </div>
     </div>
+    <!-- MENSAGENS -->
+    <div class="view" id="v-msg" hidden>
+      <div class="panel">
+        <h3>Mensagens prontas</h3>
+        <p class="hint">Edite os textos enviados às clientes. Use as variáveis entre chaves: <b>{nome}</b>, <b>{servicos}</b>, <b>{data}</b>, <b>{hora}</b>, <b>{total}</b> e <b>{motivo}</b>. Elas são preenchidas automaticamente em cada agendamento.</p>
+        <div id="msgList"></div>
+      </div>
+    </div>
   </main>
 </div>
 
+<div class="modal" id="modal" hidden><div class="mbox" id="mbox"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -372,7 +401,8 @@ const live=a=>a.status!=='cancelado';
 
 /* ---------- Login ---------- */
 async function enter(){
-  const [sv,sc,off]=await Promise.all([api('/servicos'),api('/horarios'),api('/folgas')]);
+  const [sv,sc,off,tp]=await Promise.all([api('/servicos'),api('/horarios'),api('/folgas'),api('/mensagens')]);
+  TEMPLATES=tp;
   SERVICES=sv;
   SCHEDULE.splice(0,SCHEDULE.length,...sc);
   draft.splice(0,draft.length,...sc.map(s=>({...s})));
@@ -402,7 +432,8 @@ $('#logout').onclick=logout;
 $('#tabs').addEventListener('click',e=>{
   const b=e.target.closest('.tab');if(!b)return;
   $$('.tab').forEach(t=>t.classList.toggle('on',t===b));
-  ['agenda','perf','hor','svc'].forEach(v=>$('#v-'+v).hidden=v!==b.dataset.v);
+  ['agenda','perf','hor','svc','msg'].forEach(v=>$('#v-'+v).hidden=v!==b.dataset.v);
+  if(b.dataset.v==='msg')renderMsg();
   if(b.dataset.v==='perf')renderPerf();
   if(b.dataset.v==='hor')renderBlocks();
   scrollTo({top:0});
@@ -468,14 +499,14 @@ function renderAgenda(){
     const wa=`https://wa.me/55${a.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Olá, ${a.client.split(' ')[0]}! Aqui é a Thaís. Sobre seu horário em ${d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})} às ${hhmm(a.start)}:`)}`;
     const acts={
       pendente:`<button class="btn btn--sm" data-a="confirmado" data-id="${a.id}">Confirmar</button><button class="btn btn--ghost btn--sm" data-a="cancelado" data-id="${a.id}">Cancelar</button>`,
-      confirmado:`<button class="btn btn--sm" data-a="concluido" data-id="${a.id}">Concluir</button><button class="btn btn--ghost btn--sm" data-a="cancelado" data-id="${a.id}">Cancelar</button>`,
+      confirmado:`<button class="btn btn--sm" data-a="concluido" data-id="${a.id}">Concluir</button><button class="btn btn--ghost btn--sm" data-re="${a.id}">Reagendar</button><button class="btn btn--ghost btn--sm" data-a="cancelado" data-id="${a.id}">Cancelar</button>`,
       concluido:'',
       cancelado:`<button class="btn btn--ghost btn--sm" data-a="confirmado" data-id="${a.id}">Reabrir</button>`
     }[a.status];
     return `<article class="ap st-${a.status}">
       <div class="ap-time"><b>${hhmm(a.start)}</b><small>até ${hhmm(a.start+m)}</small></div>
-      <div class="ap-main"><h4>${esc(a.client)}</h4><p>${a.svc.map(id=>svc(id).name).join(' + ')} · ${dur(m)}</p><span class="tag">${STATUS[a.status]}</span></div>
-      <div class="ap-side"><span class="price">${fmt(total(a))}</span><div class="acts">${acts}<a class="btn btn--ghost btn--sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a></div></div>
+      <div class="ap-main"><h4>${esc(a.client)}</h4><p>${a.svc.map(id=>svc(id).name).join(' + ')} · ${dur(m)}${a.status==='cancelado'&&a.reason?` · Motivo: ${esc(a.reason)}`:''}</p><span class="tag">${STATUS[a.status]}</span></div>
+      <div class="ap-side"><span class="price">${fmt(total(a))}</span><div class="acts">${acts}<button class="btn btn--ghost btn--sm" data-msg="${a.id}">Mensagem</button></div></div>
     </article>`;
   }).join(''):`<div class="empty"><b>Dia livre ✨</b>Nenhum agendamento para esta data.</div>`;
 }
@@ -491,13 +522,17 @@ $('#notice').addEventListener('click',async e=>{
   toast(on?'Dia bloqueado':'Dia desbloqueado');renderAgenda();
 });
 $('#apList').addEventListener('click',async e=>{
-  const b=e.target.closest('[data-a]');if(!b)return;
+  const b=e.target.closest('[data-a],[data-msg],[data-re]');if(!b)return;
+  if(b.dataset.msg)return openMsg(+b.dataset.msg);
+  if(b.dataset.re)return openResched(+b.dataset.re);
   const a=APPTS.find(x=>x.id===+b.dataset.id),to=b.dataset.a;
+  if(to==='cancelado')return openCancel(a.id);
   b.disabled=true;
   try{await api('/agendamentos/'+a.id,{method:'PATCH',body:{status:to}});}
   catch(er){b.disabled=false;return toast(er.message);}
   a.status=to;
   toast({confirmado:'Agendamento confirmado',concluido:'Atendimento concluído',cancelado:'Agendamento cancelado'}[to]);
+  if(to==='concluido')setTimeout(()=>openMsg(a.id,'agradecimento'),300);
   renderAgenda();
 });
 
@@ -660,6 +695,123 @@ $('#blkList').addEventListener('click',async e=>{
   catch(er){return toast(er.message);}
   for(let d=parse(b.dataset.from);key(d)<=b.dataset.to;d=addDays(d,1))BLOCKED.delete(key(d));
   renderBlocks();renderAgenda();toast('Período liberado');
+});
+
+/* ---------- Mensagens, cancelamento e reagendamento ---------- */
+let TEMPLATES=[];
+const modal=$('#modal'),mbox=$('#mbox');
+const showModal=h=>{mbox.innerHTML=h;modal.hidden=false;};
+const closeModal=()=>{modal.hidden=true;mbox.innerHTML='';};
+modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('[data-close]'))closeModal();});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal();});
+
+const tplBody=k=>(TEMPLATES.find(t=>t.key===k)||{body:''}).body;
+const fill=(tpl,a,extra={})=>{
+  const v={
+    nome:a.client.split(' ')[0],
+    servicos:a.svc.map(id=>svc(id).name).join(', '),
+    data:parse(a.date).toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}),
+    hora:hhmm(a.start),total:fmt(a.total),motivo:'',...extra
+  };
+  return tpl.replace(/\{(\w+)\}/g,(m,k)=>k in v?v[k]:m);
+};
+const waLink=(a,text)=>`https://wa.me/55${a.phone.replace(/\D/g,'')}?text=${encodeURIComponent(text)}`;
+
+function openMsg(id,k){
+  const a=APPTS.find(x=>x.id===id);if(!a)return;
+  const first=k||({confirmado:'confirmacao',concluido:'agradecimento',cancelado:'cancelamento'}[a.status])||'confirmacao';
+  showModal(`<h3>Mensagem para ${esc(a.client.split(' ')[0])}</h3>
+    <p class="hint">Escolha o modelo, ajuste se quiser e abra o WhatsApp.</p>
+    <div class="field"><label for="mTpl">Modelo</label><select id="mTpl">${TEMPLATES.map(t=>`<option value="${t.key}" ${t.key===first?'selected':''}>${esc(t.title)}</option>`).join('')}</select></div>
+    <div class="field"><label for="mTxt">Mensagem</label><textarea id="mTxt" rows="8"></textarea></div>
+    <div class="mrow"><button class="btn btn--ghost btn--sm" data-close>Fechar</button><a class="btn btn--sm" id="mGo" target="_blank" rel="noopener">Abrir WhatsApp</a></div>`);
+  const link=()=>{$('#mGo').href=waLink(a,$('#mTxt').value);};
+  const upd=()=>{$('#mTxt').value=fill(tplBody($('#mTpl').value),a,{motivo:a.reason||''});link();};
+  $('#mTpl').onchange=upd;$('#mTxt').oninput=link;upd();
+}
+
+function sentStep(a,k,title){
+  const t=fill(tplBody(k),a,{motivo:a.reason||''});
+  showModal(`<h3>${title} ✓</h3>
+    <p class="hint">Revise a mensagem para a cliente e envie pelo WhatsApp.</p>
+    <div class="field"><textarea id="sTxt" rows="8">${esc(t)}</textarea></div>
+    <div class="mrow"><button class="btn btn--ghost btn--sm" data-close>Agora não</button><a class="btn btn--sm" id="sGo" target="_blank" rel="noopener">Enviar no WhatsApp</a></div>`);
+  const l=()=>{$('#sGo').href=waLink(a,$('#sTxt').value);};
+  $('#sTxt').oninput=l;l();
+}
+
+function openCancel(id){
+  const a=APPTS.find(x=>x.id===id);if(!a)return;
+  showModal(`<h3>Cancelar agendamento</h3>
+    <p class="hint">${esc(a.client)} · ${fmtD(a.date)} às ${hhmm(a.start)}</p>
+    <div class="field"><label for="cWhy">Motivo do cancelamento</label><textarea id="cWhy" rows="3" maxlength="200" placeholder="Ex.: imprevisto pessoal, problema de saúde..."></textarea></div>
+    <div class="mrow"><button class="btn btn--ghost btn--sm" data-close>Voltar</button><button class="btn btn--sm" id="cOk" disabled>Cancelar e avisar cliente</button></div>`);
+  const w=$('#cWhy'),ok=$('#cOk');
+  w.oninput=()=>{ok.disabled=w.value.trim().length<3;};
+  ok.onclick=async()=>{
+    const motivo=w.value.trim();ok.disabled=true;
+    try{await api('/agendamentos/'+id,{method:'PATCH',body:{status:'cancelado',motivo}});}
+    catch(er){ok.disabled=false;return toast(er.message);}
+    a.status='cancelado';a.reason=motivo;renderAgenda();
+    sentStep(a,'cancelamento','Agendamento cancelado');
+  };
+}
+
+function openResched(id){
+  const a=APPTS.find(x=>x.id===id);if(!a)return;
+  let day=a.date,hour=null;
+  showModal(`<h3>Reagendar</h3>
+    <p class="hint">${esc(a.client)} · atualmente ${fmtD(a.date)} às ${hhmm(a.start)}</p>
+    <div class="field"><label for="rDay">Nova data</label><input type="date" id="rDay" min="${todayK}" value="${day}"></div>
+    <div class="field"><label>Horário</label><div class="pick" id="rSlots"></div></div>
+    <div class="mrow"><button class="btn btn--ghost btn--sm" data-close>Voltar</button><button class="btn btn--sm" id="rOk" disabled>Reagendar e avisar cliente</button></div>`);
+  const box=$('#rSlots'),ok=$('#rOk');
+  async function load(){
+    hour=null;ok.disabled=true;
+    if(!day){box.innerHTML='';return;}
+    box.innerHTML='<span class="hint">Carregando…</span>';
+    try{
+      const r=await api(`/agendamentos/${id}/horarios?data=${day}`);
+      box.innerHTML=r.slots.length?r.slots.map(s=>`<button type="button" data-h="${s}">${s}</button>`).join(''):'<span class="hint">Sem horários livres neste dia.</span>';
+    }catch(er){box.innerHTML='';toast(er.message);}
+  }
+  $('#rDay').onchange=e=>{day=e.target.value;load();};
+  box.onclick=e=>{
+    const b=e.target.closest('[data-h]');if(!b)return;
+    hour=b.dataset.h;$$('button',box).forEach(x=>x.classList.toggle('on',x===b));ok.disabled=false;
+  };
+  ok.onclick=async()=>{
+    ok.disabled=true;
+    try{await api('/agendamentos/'+id,{method:'PUT',body:{data:day,hora:hour}});}
+    catch(er){ok.disabled=false;return toast(er.message);}
+    const [h,m]=hour.split(':');
+    a.date=day;a.start=(+h)*60+(+m);
+    await setDay(day);
+    sentStep(a,'reagendamento','Agendamento reagendado');
+  };
+  load();
+}
+
+function renderMsg(){
+  $('#msgList').innerHTML=TEMPLATES.map(t=>`
+    <div class="tpl" data-k="${t.key}"><h4>${esc(t.title)}</h4>
+      <textarea rows="6" maxlength="1000">${esc(t.body)}</textarea>
+      <div class="mrow"><button class="btn btn--sm" disabled>Salvar</button></div></div>`).join('');
+}
+$('#msgList').addEventListener('input',e=>{
+  const row=e.target.closest('.tpl');if(!row)return;
+  const t=TEMPLATES.find(x=>x.key===row.dataset.k),v=e.target.value.trim();
+  const changed=v.length>=5&&v!==t.body;
+  e.target.classList.toggle('dirty',changed);
+  $('button',row).disabled=!changed;
+});
+$('#msgList').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b||b.disabled)return;
+  const row=b.closest('.tpl'),t=TEMPLATES.find(x=>x.key===row.dataset.k),ta=$('textarea',row),v=ta.value.trim();
+  b.disabled=true;
+  try{await api('/mensagens/'+t.key,{method:'PUT',body:{body:v}});}
+  catch(er){b.disabled=false;return toast(er.message);}
+  t.body=v;ta.classList.remove('dirty');toast(`“${t.title}” salva`);
 });
 
 function renderAll(){renderAgenda();renderSvc();renderHor();}

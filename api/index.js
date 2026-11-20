@@ -49,7 +49,7 @@ async function setPrice(id, { price }) {
 }
 
 /* ---------- Horários livres ---------- */
-async function freeSlots(date, need) {
+async function freeSlots(date, need, ignoreId = 0) {
   const today = nowLocal();
   if (date < today.date) return [];
   const wd = new Date(date + 'T12:00:00Z').getUTCDay();
@@ -61,7 +61,7 @@ async function freeSlots(date, need) {
     sql`SELECT (EXTRACT(HOUR FROM starts_at AT TIME ZONE ${TZ})*60 + EXTRACT(MINUTE FROM starts_at AT TIME ZONE ${TZ}))::int a,
                (EXTRACT(HOUR FROM ends_at AT TIME ZONE ${TZ})*60 + EXTRACT(MINUTE FROM ends_at AT TIME ZONE ${TZ}))::int b
         FROM appointments
-        WHERE status IN ('confirmed','done') AND (starts_at AT TIME ZONE ${TZ})::date = ${date}`,
+        WHERE status IN ('confirmed','done') AND (starts_at AT TIME ZONE ${TZ})::date = ${date} AND id <> ${ignoreId}`,
   ]);
   if (off.some(o => !o.a)) return [];
   const blocked = [...off.map(o => [toMin(o.a), toMin(o.b)]), ...busy.map(x => [x.a, x.b])];
@@ -138,7 +138,7 @@ async function agenda(q) {
     SELECT a.id,
            to_char(a.starts_at AT TIME ZONE ${TZ}, 'YYYY-MM-DD') AS date,
            (EXTRACT(HOUR FROM a.starts_at AT TIME ZONE ${TZ})*60 + EXTRACT(MINUTE FROM a.starts_at AT TIME ZONE ${TZ}))::int AS start,
-           c.name AS client, c.whatsapp AS phone, a.status, a.total_price AS total,
+           c.name AS client, c.whatsapp AS phone, a.status, a.total_price AS total, a.cancel_reason AS reason,
            COALESCE(array_agg(s.service_id) FILTER (WHERE s.service_id IS NOT NULL), '{}') AS svc
     FROM appointments a
     JOIN customers c ON c.id = a.customer_id
@@ -148,17 +148,58 @@ async function agenda(q) {
     ORDER BY a.starts_at`;
   return rows.map(r => ({ ...r, phone: r.phone.replace(/^55/, ''), total: Number(r.total), status: ST_OUT[r.status] }));
 }
-async function setStatus(id, { status }) {
+async function setStatus(id, { status, motivo }) {
   const st = ST_IN[status];
   if (!st) bad('Status inválido');
+  const why = st === 'canceled' ? (String(motivo || '').trim().slice(0, 200) || null) : null;
   try {
-    const r = await sql`UPDATE appointments SET status = ${st} WHERE id = ${Number(id)} RETURNING id`;
+    const r = await sql`UPDATE appointments SET status = ${st}, cancel_reason = ${why} WHERE id = ${Number(id)} RETURNING id`;
     if (!r.length) bad('Agendamento não encontrado', 404);
     return { ok: true };
   } catch (e) {
     if (e.code === '23P01') bad('Esse horário já está ocupado por outro agendamento', 409);
     throw e;
   }
+}
+
+/* ---------- Reagendar ---------- */
+async function reschedSlots(id, q) {
+  const data = q.get('data');
+  if (!DATE_RE.test(data || '')) bad('Data inválida');
+  const [a] = await sql`SELECT (EXTRACT(EPOCH FROM ends_at - starts_at)/60)::int AS m FROM appointments WHERE id = ${Number(id)}`;
+  if (!a) bad('Agendamento não encontrado', 404);
+  return { slots: await freeSlots(data, a.m, Number(id)) };
+}
+async function reschedule(id, { data, hora }) {
+  if (!DATE_RE.test(data || '') || !TIME_RE.test(hora || '')) bad('Data ou horário inválido');
+  const [a] = await sql`SELECT status, (EXTRACT(EPOCH FROM ends_at - starts_at)/60)::int AS m
+                        FROM appointments WHERE id = ${Number(id)}`;
+  if (!a) bad('Agendamento não encontrado', 404);
+  if (a.status !== 'confirmed') bad('Só é possível reagendar agendamentos confirmados');
+  if (!(await freeSlots(data, a.m, Number(id))).includes(hora)) bad('Horário indisponível. Escolha outro.', 409);
+  const start = `${data}T${hora}:00${OFFSET}`;
+  const end = new Date(new Date(start).getTime() + a.m * 60000).toISOString();
+  try {
+    await sql`UPDATE appointments
+              SET rescheduled_from = starts_at, starts_at = ${start}::timestamptz, ends_at = ${end}::timestamptz
+              WHERE id = ${Number(id)}`;
+    return { ok: true };
+  } catch (e) {
+    if (e.code === '23P01') bad('Esse horário já está ocupado por outro agendamento', 409);
+    throw e;
+  }
+}
+
+/* ---------- Mensagens prontas ---------- */
+async function listTemplates() {
+  return sql`SELECT key, title, body FROM message_templates ORDER BY sort_order`;
+}
+async function setTemplate(key, { body }) {
+  const t = String(body || '').trim();
+  if (t.length < 5 || t.length > 1000) bad('A mensagem deve ter entre 5 e 1000 caracteres');
+  const r = await sql`UPDATE message_templates SET body = ${t}, updated_at = now() WHERE key = ${key} RETURNING key`;
+  if (!r.length) bad('Modelo não encontrado', 404);
+  return { ok: true };
 }
 
 /* ---------- Dias e horários de trabalho ---------- */
@@ -238,6 +279,10 @@ export default async function handler(req, res) {
     else if (m === 'GET' && path === '/api/folgas') r = await priv(listOff);
     else if (m === 'POST' && path === '/api/folgas') r = await priv(() => addOff(body));
     else if (m === 'DELETE' && path === '/api/folgas') r = await priv(() => delOff(q));
+    else if (m === 'GET' && (id = path.match(/^\/api\/agendamentos\/(\d+)\/horarios$/))) r = await priv(() => reschedSlots(id[1], q));
+    else if (m === 'PUT' && (id = path.match(/^\/api\/agendamentos\/(\d+)$/))) r = await priv(() => reschedule(id[1], body));
+    else if (m === 'GET' && path === '/api/mensagens') r = await priv(listTemplates);
+    else if (m === 'PUT' && (id = path.match(/^\/api\/mensagens\/([\w-]+)$/))) r = await priv(() => setTemplate(id[1], body));
     else bad('Rota não encontrada', 404);
 
     res.status(200).json(r);
