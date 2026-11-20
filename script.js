@@ -44,8 +44,8 @@ const STORIES = [
 
 const REVIEWS = [
   ['Atendimento impecável! Minhas unhas duraram muito, e o acabamento é perfeito.', 'Luciene A.'],
-  ['Ambiente aconchegante, super pontual e cuidadosa. Já virei cliente fiel.', 'M. Jamile'],
-  ['Melhor alongamento que já fiz. Natural, leve e lindo demais!', 'Kelly S.'],
+  ['Ambiente aconchegante, super pontual e cuidadosa. Já virei cliente fiel.', 'Kely S.'],
+  ['Melhor alongamento que já fiz. Natural, leve e lindo demais!', 'M. Jamile'],
   ['Agendei pelo site em segundos e o resultado superou minhas expectativas.', 'Joelma M.'],
 ];
 
