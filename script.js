@@ -37,9 +37,9 @@ let SERVICES = [
 const STORIES = [
   { name: 'Gel',         slides: [{ t: 'Esmaltação em gel', img: '../static/gel1.jpeg', c: ['#EFE3D4', '#DBBAA5'] }, { img: '../static/gel2.jpeg', c: ['#DBBAA5', '#9D7D62'] }, { img: '../static/gel3.jpeg', c: ['#DBBAA5', '#9D7D62'] }, { img: '../static/gel4.jpeg', c: ['#DBBAA5', '#9D7D62'] }, { img: '../static/gel5.jpeg', c: ['#DBBAA5', '#9D7D62'] }] },
   { name: 'Alongamento', slides: [{ t: 'Alongamento em fibra', c: ['#9D7D62', '#593D29'] }, { t: 'Formato perfeito', c: ['#DBBAA5', '#593D29'] }] },
-  { name: 'Nail art',    slides: [{ t: 'Nail art delicada', c: ['#B89E5D', '#593D29'] }, { t: 'Detalhes únicos', c: ['#EFE3D4', '#B89E5D'] }] },
+  { name: 'Spa dos Pés',    slides: [{ t: 'Pés cuidados', c: ['#B89E5D', '#593D29'] }, { t: 'Detalhes únicos', c: ['#EFE3D4', '#B89E5D'] }] },
   { name: 'Francesinha', slides: [{ t: 'Francesinha clássica', c: ['#EFE3D4', '#9D7D62'] }, { t: 'Elegância atemporal', c: ['#DBBAA5', '#B89E5D'] }] },
-  { name: 'Pedicure',    slides: [{ t: 'Pés cuidados', c: ['#DBBAA5', '#9D7D62'] }, { t: 'Spa dos pés', c: ['#9D7D62', '#EFE3D4'] }] },
+  { name: 'Pedicure',    slides: [{ t: 'Beleza nos pés', c: ['#DBBAA5', '#9D7D62'] }, { t: 'Spa dos pés', c: ['#9D7D62', '#EFE3D4'] }] },
 ];
 
 const REVIEWS = [
