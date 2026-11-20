@@ -24,19 +24,18 @@ async function api(path, opts = {}) {
 
 /* ============ DADOS (lista de reserva; a oficial vem de /api/servicos) ============ */
 let SERVICES = [
-  { id: 'gel',   name: 'Esmaltação em gel',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 55,  mins: 60 },
-  { id: 'trad',  name: 'Manicure tradicional',      desc: 'Cutilagem delicada e esmaltação clássica.',         price: 30,  mins: 45 },
-  { id: 'pedi',  name: 'Pedicure',                  desc: 'Cuidado completo para pés leves e macios.',         price: 40,  mins: 60 },
-  { id: 'fibra', name: 'Alongamento em fibra',      desc: 'Formato perfeito, leve e resistente.',              price: 180, mins: 150 },
-  { id: 'manut', name: 'Manutenção do alongamento', desc: 'Reposição e acabamento a cada 15–20 dias.',         price: 120, mins: 120 },
-  { id: 'bind',  name: 'Blindagem',                 desc: 'Reforço que protege e fortalece a unha natural.',   price: 80,  mins: 90 },
-  { id: 'art',   name: 'Nail art',                  desc: 'Decorações, francesinha, pedrarias e mais.',        price: 25,  mins: 30 },
-  { id: 'spa',   name: 'Spa dos pés',               desc: 'Esfoliação, hidratação e massagem relaxante.',      price: 70,  mins: 60 },
+  { id: 'man+ped',  name: 'Manicure + Pedicure',      desc: 'Cutilagem delicada, cuidado para pés e esmaltação clássica.',         price: 35,  mins: 90 },
+  { id: 'mani',  name: 'Manicure',      desc: 'Cutilagem delicada e esmaltação clássica.',         price: 20,  mins: 50 },
+  { id: 'pedi',  name: 'Pedicure',                  desc: 'Cuidado completo para pés leves e macios.',         price: 20,  mins: 50 },
+  { id: 'gel-m',   name: 'Cutilagem + Esmaltação em gel (mão)',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 50,  mins: 60 },
+  { id: 'gel-p',   name: 'Cutilagem + Esmaltação em gel (pé)',         desc: 'Cor intensa e brilho que dura até 3 semanas.',      price: 50,  mins: 60 },
+  { id: 'plast', name: 'Plásticas dos pés + Pedicure',      desc: 'Tratamento completo para renovar, suavizar e cuidar dos pés.',              price: 45, mins: 90 },
+  { id: 'esm-m', name: 'Esmaltação tradicional (mão)', desc: 'Cores clássicas, brilho e acabamento delicado para suas mãos.',         price: 10, mins: 30 },
+  { id: 'esm-p',  name: 'Esmaltação tradicional (pé)',                 desc: 'Unhas dos pés com cor, brilho e acabamento impecável.',   price: 10,  mins: 30 },
 ];
 
-// Para usar fotos reais: { t: 'Título', img: 'static/foto1.jpg', c: [...] }
 const STORIES = [
-  { name: 'Gel',         slides: [{ t: 'Esmaltação em gel', c: ['#EFE3D4', '#DBBAA5'] }, { t: 'Brilho que dura', c: ['#DBBAA5', '#9D7D62'] }] },
+  { name: 'Gel',         slides: [{ t: 'Esmaltação em gel', img: '../static/gel1.jpeg', c: ['#EFE3D4', '#DBBAA5'] }, { img: '../static/gel2.jpeg', c: ['#DBBAA5', '#9D7D62'] }, { img: '../static/gel3.jpeg', c: ['#DBBAA5', '#9D7D62'] }, { img: '../static/gel4.jpeg', c: ['#DBBAA5', '#9D7D62'] }, { img: '../static/gel5.jpeg', c: ['#DBBAA5', '#9D7D62'] }] },
   { name: 'Alongamento', slides: [{ t: 'Alongamento em fibra', c: ['#9D7D62', '#593D29'] }, { t: 'Formato perfeito', c: ['#DBBAA5', '#593D29'] }] },
   { name: 'Nail art',    slides: [{ t: 'Nail art delicada', c: ['#B89E5D', '#593D29'] }, { t: 'Detalhes únicos', c: ['#EFE3D4', '#B89E5D'] }] },
   { name: 'Francesinha', slides: [{ t: 'Francesinha clássica', c: ['#EFE3D4', '#9D7D62'] }, { t: 'Elegância atemporal', c: ['#DBBAA5', '#B89E5D'] }] },
@@ -44,10 +43,10 @@ const STORIES = [
 ];
 
 const REVIEWS = [
-  ['Atendimento impecável! Minhas unhas duraram mais de 3 semanas e o acabamento é perfeito.', 'Mariana S.'],
-  ['Ambiente aconchegante, super pontual e cuidadosa. Já virei cliente fiel.', 'Camila R.'],
-  ['Melhor alongamento que já fiz. Natural, leve e lindo demais!', 'Juliana A.'],
-  ['Agendei pelo site em segundos e o resultado superou minhas expectativas.', 'Beatriz L.'],
+  ['Atendimento impecável! Minhas unhas duraram muito, e o acabamento é perfeito.', 'Luciene A.'],
+  ['Ambiente aconchegante, super pontual e cuidadosa. Já virei cliente fiel.', 'M. Jamile'],
+  ['Melhor alongamento que já fiz. Natural, leve e lindo demais!', 'Kelly S.'],
+  ['Agendei pelo site em segundos e o resultado superou minhas expectativas.', 'Joelma M.'],
 ];
 
 /* ============ PÁGINA INICIAL (index.html) ============ */
