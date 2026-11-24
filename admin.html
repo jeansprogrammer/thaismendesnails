@@ -263,6 +263,7 @@ main{padding:1.8rem 0 4rem}
       <div class="dayhead">
         <h2 id="dayTitle"></h2>
         <div class="nav-d">
+          <button class="btn btn--sm" id="newAp">+ Novo agendamento</button>
           <button class="arrow" id="prev" aria-label="Dia anterior">‹</button>
           <button class="btn btn--ghost btn--sm" id="goToday">Hoje</button>
           <button class="arrow" id="next" aria-label="Próximo dia">›</button>
@@ -793,6 +794,62 @@ function openResched(id){
   };
   load();
 }
+
+/* ---------- Novo agendamento manual ---------- */
+function openNew(){
+  const sv=new Set();let day=sel<todayK?todayK:sel,hour=null,req=0;
+  showModal(`<h3>Novo agendamento</h3>
+    <p class="hint">Cadastre uma cliente manualmente. Os horários mostrados são os livres.</p>
+    <div class="field"><label>Serviços</label><div class="pick" id="nSvc">${SERVICES.map(s=>`<button type="button" data-s="${s.id}">${esc(s.name)} · ${fmt(s.price)}</button>`).join('')}</div></div>
+    <div class="field"><label for="nDay">Data</label><input type="date" id="nDay" min="${todayK}" value="${day}"></div>
+    <div class="field"><label>Horário</label><div class="pick" id="nSlots"></div></div>
+    <div class="field"><label for="nNome">Nome da cliente</label><input id="nNome" maxlength="80" placeholder="Nome completo" autocomplete="off"></div>
+    <div class="field"><label for="nTel">WhatsApp</label><input id="nTel" type="tel" inputmode="tel" placeholder="(87) 99999-9999" autocomplete="off"></div>
+    <div class="mrow"><button class="btn btn--ghost btn--sm" data-close>Voltar</button><button class="btn btn--sm" id="nOk" disabled>Cadastrar</button></div>`);
+  const box=$('#nSlots'),ok=$('#nOk');
+  const check=()=>{ok.disabled=!(sv.size&&day&&hour&&$('#nNome').value.trim().length>2&&$('#nTel').value.replace(/\D/g,'').length>=10);};
+  async function load(){
+    hour=null;check();
+    if(!sv.size)return box.innerHTML='<span class="hint">Escolha os serviços para ver os horários.</span>';
+    if(!day)return box.innerHTML='<span class="hint">Escolha a data.</span>';
+    const my=++req;box.innerHTML='<span class="hint">Carregando…</span>';
+    try{
+      const r=await api(`/horarios-livres?data=${day}&servicos=${[...sv].join(',')}`);
+      if(my!==req)return;
+      box.innerHTML=r.slots.length?r.slots.map(s=>`<button type="button" data-h="${s}">${s}</button>`).join(''):'<span class="hint">Sem horários livres neste dia.</span>';
+    }catch(er){if(my===req){box.innerHTML='';toast(er.message);}}
+  }
+  $('#nSvc').onclick=e=>{
+    const b=e.target.closest('[data-s]');if(!b)return;
+    const id=b.dataset.s;sv.has(id)?sv.delete(id):sv.add(id);
+    b.classList.toggle('on',sv.has(id));load();
+  };
+  $('#nDay').onchange=e=>{day=e.target.value;load();};
+  box.onclick=e=>{
+    const b=e.target.closest('[data-h]');if(!b)return;
+    hour=b.dataset.h;$$('button',box).forEach(x=>x.classList.toggle('on',x===b));check();
+  };
+  $('#nTel').addEventListener('input',e=>{
+    let v=e.target.value.replace(/\D/g,'').slice(0,11);
+    v=v.replace(/^(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d{1,4})$/,'$1-$2');
+    e.target.value=v;check();
+  });
+  $('#nNome').addEventListener('input',check);
+  ok.onclick=async()=>{
+    ok.disabled=true;
+    const nome=$('#nNome').value.trim(),tel=$('#nTel').value.replace(/\D/g,'');
+    let r;
+    try{r=await api('/agendamentos',{method:'POST',body:{nome,whatsapp:'55'+tel,servico_ids:[...sv],data:day,hora:hour}});}
+    catch(er){toast(er.message);return load();}
+    try{await loadRange(day,day);}catch(_){}
+    await setDay(day);
+    toast('Agendamento cadastrado');
+    const a=APPTS.find(x=>x.id===r.id);
+    if(a)sentStep(a,'confirmacao','Agendamento cadastrado');else closeModal();
+  };
+  load();
+}
+$('#newAp').onclick=openNew;
 
 function renderMsg(){
   $('#msgList').innerHTML=TEMPLATES.map(t=>`
