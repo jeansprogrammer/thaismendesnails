@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel · Thaís Mendes Nails</title>
-<link rel="icon" type="image/png" href="static/favicon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="static/admin-apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="static/admin-icon-192.png">
 <meta name="apple-mobile-web-app-title" content="Painel Thaís">
@@ -362,6 +361,8 @@ const svc=id=>SERVICES.find(s=>s.id===id)||{name:'Serviço removido',price:0,min
 
 const today=new Date();today.setHours(0,0,0,0);
 const todayK=key(today);
+const LAST=new Date(today.getFullYear(),today.getMonth()+2,0); // último dia do mês seguinte
+const LAST_OFF=Math.round((LAST-today)/864e5);
 let APPTS=[],loaded={from:'',to:''};
 
 /* ---------- API ---------- */
@@ -408,7 +409,7 @@ async function enter(){
   SCHEDULE.splice(0,SCHEDULE.length,...sc);
   draft.splice(0,draft.length,...sc.map(s=>({...s})));
   BLOCKED.clear();off.forEach(o=>BLOCKED.set(o.day,o.reason));
-  await loadRange(key(addDays(today,-14)),key(addDays(today,14)));
+  await loadRange(key(addDays(today,-14)),key(LAST));
   sel=todayK;
   $('#login').hidden=true;$('#app').hidden=false;renderAll();
 }
@@ -463,7 +464,7 @@ function renderAgenda(){
 
   // faixa de dias
   let chips='';
-  for(let i=-4;i<=14;i++){
+  for(let i=-4;i<=LAST_OFF;i++){
     const x=addDays(today,i),k=key(x);
     const c=APPTS.filter(a=>a.date===k&&live(a)).length;
     chips+=`<button class="chip ${k===sel?'on':''} ${k===todayK?'today':''} ${!SCHEDULE[x.getDay()].open||BLOCKED.has(k)?'closed':''}" data-k="${k}">
