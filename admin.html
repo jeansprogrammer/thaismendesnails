@@ -47,6 +47,9 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;color:var(--brown);line-hei
 .field label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .field input{padding:.9rem 1rem;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:var(--bg);outline:0;transition:.2s;width:100%}
 .field input:focus{border-color:var(--taupe);background:#fff}
+.field{min-width:0}
+.field input[type=date],.field input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;min-height:49px;text-align:left}
+.field input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.2em}
 .err{color:var(--bad);font-size:.85rem;min-height:1.3em;margin-bottom:.6rem}
 .login .btn{width:100%;padding:1rem}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}}
@@ -196,7 +199,7 @@ main{padding:1.8rem 0 4rem}
 .blk small{display:block;color:var(--muted);font-size:.82rem}
 @media(max-width:700px){
   .hrow{grid-template-columns:1fr}
-  .bform{grid-template-columns:1fr}
+  .bform{grid-template-columns:minmax(0,1fr)}
   .bform .btn{width:100%}
 }
 
