@@ -468,7 +468,7 @@ function renderAgenda(){
     const x=addDays(today,i),k=key(x);
     const c=APPTS.filter(a=>a.date===k&&live(a)).length;
     chips+=`<button class="chip ${k===sel?'on':''} ${k===todayK?'today':''} ${!SCHEDULE[x.getDay()].open||BLOCKED.has(k)?'closed':''}" data-k="${k}">
-      ${c?`<i>${c}</i>`:''}<small>${WD[x.getDay()]}</small><b>${x.getDate()}</b></button>`;
+      ${c?`<i>${c}</i>`:''}<small>${WD[x.getDay()]}</small><b>${x.getDate()}</b><small>${x.toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase()}</small></button>`;
   }
   const strip=$('#strip');strip.innerHTML=chips;
   const on=$('.chip.on',strip);
