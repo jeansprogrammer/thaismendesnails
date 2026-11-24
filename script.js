@@ -138,10 +138,12 @@ function initBooking() {
     setTimeout(() => row.classList.remove('pop'), 3200);
   }
 
-  /* Dias (próximos 21; domingo fechado) */
+  /* Dias: de hoje até o último dia do mês seguinte */
   const today = new Date(); today.setHours(0, 0, 0, 0);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+  const totalDays = Math.round((lastDay - today) / 864e5) + 1;
   const WD = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-  $('#bkDays').innerHTML = Array.from({ length: 21 }, (_, i) => {
+  $('#bkDays').innerHTML = Array.from({ length: totalDays }, (_, i) => {
     const d = new Date(today); d.setDate(today.getDate() + i);
     const mes = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
     return `<button class="day" data-d="${key(d)}"><small>${WD[d.getDay()]}</small><b>${d.getDate()}</b><small>${mes}</small></button>`;
